@@ -1,17 +1,39 @@
 <template>
     <div>
         <div class="container bg-light mt-4 mb-3 pb-4 pt-4 pl-5 pr-5">
+            <button class="btn btn-info float-right mb-3 ml-2"  @click="filterAge = !filterAge">
+                Filter
+            </button>
             <button class="btn btn-info float-right mb-3" data-toggle="modal" data-target="#personModal" @click="showAddPersonModal()">
                 Add Person
             </button>
+
 
             <div class="input-group mb-3">
                 <input type="text" class="form-control" placeholder="Search" v-model="search" v-on:input="debounceSearchInput" >
             </div>
 
+            <div class="" v-if="filterAge">
+                <div class="font-weight-bold">FILTER AGE</div>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <select v-model="filterAgeType">
+                                <option value="equal">Age is</option>
+                                <option value="notequal">Age is not</option>
+                                <option value="greater">Age is greater or equal to</option>
+                                <option value="lesser">Age is lesser or equal to</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input type="number" class="form-control" v-model="filterAgeValue">
+                </div>
+            </div>
+
             <div class="card card-body mb-4 mt-4" v-for="person in people" v-bind:key="person.id">
                 <h4> {{ person.first_name + ' ' + person.last_name }} </h4>
                 <h6>Birthday: {{ person.birthday }}</h6>
+                <h6>Age: {{ calculateAge(person.birthday) }}</h6>
                 <hr>
                 <div class="row">
                     <div class="col-sm-12 col-md-6">
@@ -33,9 +55,18 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            <input type="text" class="form-control mb-2" placeholder="First name" v-model="person.first_name" :disabled="remove">
-                            <input type="text" class="form-control mb-2" placeholder="Last name" v-model="person.last_name" :disabled="remove">
-                            <input type="date" class="form-control mb-2" placeholder="Last name" v-model="person.birthday" :disabled="remove">
+                            <div class="form-group">
+                                <label>First name</label>
+                                <input type="text" class="form-control mb-2" placeholder="First name" v-model="person.first_name" :disabled="remove">
+                            </div>
+                            <div class="form-group">
+                                <label>Last name</label>
+                                <input type="text" class="form-control mb-2" placeholder="Last name" v-model="person.last_name" :disabled="remove">
+                            </div>
+                            <div class="form-group">
+                                <label>Birthday</label>
+                                <input type="date" class="form-control mb-2" placeholder="Last name" v-model="person.birthday" :disabled="remove">
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -74,6 +105,8 @@
 </template>
 
 <script>
+    import moment from 'moment';
+
     export default {
         data() {
             return {
@@ -88,7 +121,10 @@
                 edit: false,
                 remove: false,
                 add: false,
-                search: ''
+                search: '',
+                filterAge: true,
+                filterAgeType: 'equal',
+                filterAgeValue: '',
             }
         },
         created() {
@@ -100,6 +136,18 @@
                 api_url = api_url || '/api/people';
                 if ( this.search ) {
                     api_url += ( api_url.match( /[\?]/g ) ? '&' : '?' ) + `q=${this.search}`;
+                }
+
+                if ( this.filterAge && this.filterAgeType && this.filterAgeValue ) {
+                    const type = this.filterAgeType;
+                    const value = parseInt(this.filterAgeValue);
+
+                    const from = moment().subtract((value+1), 'years').format('YYYY-MM-DD');
+                    const to = moment().subtract(value, 'years').format('YYYY-MM-DD');
+
+                    api_url += ( api_url.match( /[\?]/g ) ? '&' : '?' ) + `date_from=${from}`;
+                    api_url += ( api_url.match( /[\?]/g ) ? '&' : '?' ) + `date_to=${to}`;
+                    api_url += ( api_url.match( /[\?]/g ) ? '&' : '?' ) + `type=${type}`;
                 }
 
                 fetch( api_url )
@@ -192,13 +240,31 @@
             },
             debounceSearchInput: _.debounce(function () {
                 this.fetchPeople();
+            }, 500),
+            calculateAge(date) {
+                date = new Date(date);
+
+                const diff_ms = Date.now() - date.getTime();
+                const age_dt = new Date(diff_ms);
+
+                const age = age_dt.getUTCFullYear() - 1970;
+                return Math.abs(age);
+            },
+            debounceFilterAge: _.debounce(function () {
+                this.fetchPeople();
             }, 500)
         },
 
         watch: {
             search: function () {
                 this.debounceSearchInput();
-            }
+            },
+            filterAgeValue: function () {
+                this.debounceFilterAge();
+            },
+            filterAgeType: function () {
+                this.debounceFilterAge();
+            },
         },
     }
 </script>

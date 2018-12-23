@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use function foo\func;
 use Illuminate\Http\Request;
 use App\Http\Requests;
 use App\People;
@@ -18,26 +19,66 @@ class PeopleController extends Controller
     {
         $q = $request->input('q');
         $paginate = $request->input('paginate') != 0? $request->input('paginate') : 3;
-        
-//        $from = '2000-10-10';
-//        $to = '2018-12-25';
-//
-//        $people = People::whereBetween('birthday', [$from, $to]);
-//        $people = $people->paginate( $paginate );
-//        return PeopleResource::collection($people);
 
-        if ($q){
-            $people = People::where( 'first_name', 'LIKE', '%' . $q . '%' )->orWhere( 'last_name', 'LIKE', '%' . $q . '%' );
-            $people = $people->paginate( $paginate );
-            return PeopleResource::collection($people);
+        $from = $request->input('date_from');
+        $to = $request->input('date_to');
+        $type = $request->input('type');
+
+        if ( !$q && $from && $to && $type ) {
+            switch ($type) {
+                case 'equal': {
+                    $people = People::whereBetween('birthday', [$from, $to]);
+                    break;
+                }
+
+                case 'notequal': {
+                    $people = People::whereNotBetween('birthday', [$from, $to]);
+                    break;
+                }
+                case 'greater': {
+                    $people = People::where('birthday', '<=', $from);
+                    break;
+                }
+                case 'lesser': {
+                    $people = People::where('birthday', '>=', $from);
+                    break;
+                }
+            }
+        } else if ( $q ) {
+            if ( $from && $to && $type ) {
+                switch ($type) {
+                    case 'equal': {
+                        $people = People::whereBetween('birthday', [$from, $to]);
+                        break;
+                    }
+
+                    case 'notequal': {
+                        $people = People::whereNotBetween('birthday', [$from, $to]);
+                        break;
+                    }
+                    case 'greater': {
+                        $people = People::where('birthday', '<=', $from);
+                        break;
+                    }
+                    case 'lesser': {
+                        $people = People::where('birthday', '>=', $from);
+                        break;
+                    }
+                }
+
+                $people = $people->where(function($query) use ($q) {
+                    $query->where( 'first_name', 'LIKE', '%' . $q . '%' )->orWhere( 'last_name', 'LIKE', '%' . $q . '%' );
+                });
+            } else {
+                $people = People::where('first_name', 'LIKE', '%' . $q . '%')->orWhere('last_name', 'LIKE', '%' . $q . '%');
+            }
         } else {
             // Get people
             $people = People::orderBy('created_at', 'desc');
-            $people = $people->paginate( $paginate );
-
-            // Return collection of people as a resource
-            return PeopleResource::collection($people);
         }
+
+        $people = $people->paginate( $paginate );
+        return PeopleResource::collection($people);
     }
 
 
