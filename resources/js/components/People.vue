@@ -1,18 +1,31 @@
 <template>
     <div>
         <div class="container bg-light mt-4 mb-3 pb-4 pt-4 pl-5 pr-5">
-            <button class="btn btn-info float-right mb-3 ml-2"  @click="filterAge = !filterAge">
-                Filter
-            </button>
-            <button class="btn btn-info float-right mb-3" data-toggle="modal" data-target="#personModal" @click="showAddPersonModal()">
-                Add Person
-            </button>
+            <!-- action buttons -->
+            <div class="mb-5">
+                <button class="btn btn-info float-right mb-3  ml-2" data-toggle="modal" data-target="#personModal" @click="showAddPersonModal()">
+                    Add Person
+                </button>
+                <button class="btn btn-info float-right mb-3"  @click="filterAge = !filterAge">
+                    Filter Age
+                </button>
+            </div>
+
+            <!-- alert component -->
+            <div class="alert alert-success alert-dismissible" role="alert" v-if="successOperation">
+                <button type="button" class="close" data-dismiss="alert">
+                    <span aria-hidden="true">×</span>
+                </button>
+                SUCCESS : Operation has been successfully completed.
+            </div>
 
 
+            <!-- search bar -->
             <div class="input-group mb-3">
                 <input type="text" class="form-control" placeholder="Search" v-model="search" v-on:input="debounceSearchInput" >
             </div>
 
+            <!-- filter by age container -->
             <div class="" v-if="filterAge">
                 <div class="font-weight-bold">FILTER AGE</div>
                 <div class="input-group">
@@ -30,21 +43,31 @@
                 </div>
             </div>
 
+            <div class="card card-body mb-4 mt-4" v-if="people.length == 0">
+                <h3>No Records.</h3>
+            </div>
+
+            <!-- list of people -->
             <div class="card card-body mb-4 mt-4" v-for="person in people" v-bind:key="person.id">
                 <h4> {{ person.first_name + ' ' + person.last_name }} </h4>
                 <h6>Birthday: {{ person.birthday }}</h6>
                 <h6>Age: {{ calculateAge(person.birthday) }}</h6>
                 <hr>
                 <div class="row">
-                    <div class="col-sm-12 col-md-6">
-                        <button class="btn btn-block btn-success mb-2" data-toggle="modal" data-target="#personModal" @click="fetchPerson(person.id, 'edit')" >Edit</button>
-                    </div>
-                    <div class="col-sm-12 col-md-6">
-                        <button class="btn btn-block btn-danger" data-toggle="modal" data-target="#personModal" @click="fetchPerson(person.id, 'remove')">Delete</button>
+                    <div class="col-lg-4 offset-lg-8 col-md-8">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button class="btn btn-block btn-success" data-toggle="modal" data-target="#personModal" @click="fetchPerson(person.id, 'edit')" >Edit</button>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-block btn-danger" data-toggle="modal" data-target="#personModal" @click="fetchPerson(person.id, 'remove')">Delete</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            <!-- person info modal -->
             <div class="modal fade" id="personModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
@@ -55,6 +78,16 @@
                             </button>
                         </div>
                         <div class="modal-body">
+                            <div class="alert alert-danger alert-dismissible small" v-if="errors.length">
+                                <button type="button" class="close" data-dismiss="alert">
+                                    <span aria-hidden="true">×</span>
+                                </button>
+                                <b>Please correct the following error(s):</b>
+                                <ul>
+                                    <li v-for="error in errors">{{ error }}</li>
+                                </ul>
+                            </div>
+
                             <div class="form-group">
                                 <label>First name</label>
                                 <input type="text" class="form-control mb-2" placeholder="First name" v-model="person.first_name" :disabled="remove">
@@ -80,7 +113,8 @@
                 </div>
             </div>
 
-            <nav class="mt-2 mb-2 pl-0 container-fluid">
+            <!-- pagination -->
+            <nav class="mt-2 mb-2 pl-0 container-fluid" v-if="people.length != 0">
                 <ul class="pagination">
                     <li class="page-item" @click="fetchPeople(pagination.first_link)" >
                         <a class="page-link" href="#">First</a>
@@ -122,9 +156,11 @@
                 remove: false,
                 add: false,
                 search: '',
-                filterAge: true,
+                filterAge: false,
                 filterAgeType: 'equal',
                 filterAgeValue: '',
+                successOperation: false,
+                errors: [],
             }
         },
         created() {
@@ -134,6 +170,7 @@
         methods: {
             fetchPeople( api_url ){
                 api_url = api_url || '/api/people';
+
                 if ( this.search ) {
                     api_url += ( api_url.match( /[\?]/g ) ? '&' : '?' ) + `q=${this.search}`;
                 }
@@ -157,7 +194,7 @@
                         this.makePagination( res.meta, res.links );
                      })
                     .catch( err => {
-                       console.log("fetch error: ", err);
+                       console.log("err: ", err);
                     });
 
             },
@@ -178,32 +215,56 @@
                     .then( res => res.json())
                     .then( res => {
                         $("[data-dismiss=modal]").trigger({ type: "click" });
+                        this.successOperation = true;
                         this.fetchPeople();
                     })
                     .catch( err => {
-                        console.log("remove person err: ", err);
+                        console.log("err: ", err);
                     });
 
             },
             addPerson() {
-                const method = this.edit? 'put': 'post';
-                fetch(`/api/people`, {
-                    method: method,
-                    body: JSON.stringify( this.person ),
-                    headers: {
-                        'content-type' : 'application/json'
-                    }
-                })
-                    .then(res => res.json())
-                    .then(res => {
-                        $("[data-dismiss=modal]").trigger({ type: "click" });
-                        this.fetchPeople();
+                if ( this.validatePerson() ) {
+                    const method = this.edit? 'put': 'post';
+                    fetch(`/api/people`, {
+                        method: method,
+                        body: JSON.stringify( this.person ),
+                        headers: {
+                            'content-type' : 'application/json'
+                        }
                     })
-                    .catch(err => {
-                        console.log("err: ", err);
-                    })
+                        .then(res => res.json())
+                        .then(res => {
+                            $("[data-dismiss=modal]").trigger({ type: "click" });
+                            this.successOperation = true;
+                            this.fetchPeople();
+                        })
+                        .catch(err => {
+                            console.log("err: ", err);
+                        })
+                }
+
             },
-            fetchPerson( id, operation ) {
+            validatePerson() {
+                this.errors = [];
+                if ( !this.person.first_name ) {
+                    this.errors.push("First name is required.");
+                }
+                if ( !this.person.last_name ) {
+                    this.errors.push('Last name is required.');
+                }
+
+                if ( !this.person.birthday ) {
+                    this.errors.push('Birthday required.');
+                }
+
+                if ( this.errors.length ) {
+                    return false;
+                }
+
+                return true;
+            },
+             fetchPerson( id, operation ) {
                 if (operation == 'edit') {
                     this.edit = true;
                     this.remove = false;
@@ -238,9 +299,6 @@
                 this.person.birthday = '';
                 this.person.id = '';
             },
-            debounceSearchInput: _.debounce(function () {
-                this.fetchPeople();
-            }, 500),
             calculateAge(date) {
                 date = new Date(date);
 
@@ -248,11 +306,18 @@
                 const age_dt = new Date(diff_ms);
 
                 const age = age_dt.getUTCFullYear() - 1970;
-                return Math.abs(age);
+                if ( age <= 0) {
+                    return 0
+                } else {
+                    return Math.abs(age);s
+                }
             },
             debounceFilterAge: _.debounce(function () {
                 this.fetchPeople();
-            }, 500)
+            }, 500),
+            debounceSearchInput: _.debounce(function () {
+                this.fetchPeople();
+            }, 500),
         },
 
         watch: {
@@ -265,6 +330,26 @@
             filterAgeType: function () {
                 this.debounceFilterAge();
             },
+            filterAge: function () {
+                if (!this.filterAge) {
+                    this.filterAgeType = 'equal';
+                    this.filterAgeValue = '';
+                }
+            },
+            successOperation: function () {
+                if ( this.successOperation ) {
+                    setTimeout(() => {
+                        this.successOperation = false;
+                    }, 4000);
+                }
+            },
+            errors: function () {
+                if ( this.errors.length ) {
+                    setTimeout(() => {
+                        this.errors = [];
+                    }, 3000);
+                }
+            }
         },
     }
 </script>

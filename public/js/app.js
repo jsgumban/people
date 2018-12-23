@@ -1871,6 +1871,40 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   data: function data() {
@@ -1887,9 +1921,11 @@ __webpack_require__.r(__webpack_exports__);
       remove: false,
       add: false,
       search: '',
-      filterAge: true,
+      filterAge: false,
       filterAgeType: 'equal',
-      filterAgeValue: ''
+      filterAgeValue: '',
+      successOperation: false,
+      errors: []
     };
   },
   created: function created() {
@@ -1922,7 +1958,7 @@ __webpack_require__.r(__webpack_exports__);
 
         _this.makePagination(res.meta, res.links);
       }).catch(function (err) {
-        console.log("fetch error: ", err);
+        console.log("err: ", err);
       });
     },
     makePagination: function makePagination(meta, links) {
@@ -1947,33 +1983,58 @@ __webpack_require__.r(__webpack_exports__);
         $("[data-dismiss=modal]").trigger({
           type: "click"
         });
+        _this2.successOperation = true;
 
         _this2.fetchPeople();
       }).catch(function (err) {
-        console.log("remove person err: ", err);
+        console.log("err: ", err);
       });
     },
     addPerson: function addPerson() {
       var _this3 = this;
 
-      var method = this.edit ? 'put' : 'post';
-      fetch("/api/people", {
-        method: method,
-        body: JSON.stringify(this.person),
-        headers: {
-          'content-type': 'application/json'
-        }
-      }).then(function (res) {
-        return res.json();
-      }).then(function (res) {
-        $("[data-dismiss=modal]").trigger({
-          type: "click"
-        });
+      if (this.validatePerson()) {
+        var method = this.edit ? 'put' : 'post';
+        fetch("/api/people", {
+          method: method,
+          body: JSON.stringify(this.person),
+          headers: {
+            'content-type': 'application/json'
+          }
+        }).then(function (res) {
+          return res.json();
+        }).then(function (res) {
+          $("[data-dismiss=modal]").trigger({
+            type: "click"
+          });
+          _this3.successOperation = true;
 
-        _this3.fetchPeople();
-      }).catch(function (err) {
-        console.log("err: ", err);
-      });
+          _this3.fetchPeople();
+        }).catch(function (err) {
+          console.log("err: ", err);
+        });
+      }
+    },
+    validatePerson: function validatePerson() {
+      this.errors = [];
+
+      if (!this.person.first_name) {
+        this.errors.push("First name is required.");
+      }
+
+      if (!this.person.last_name) {
+        this.errors.push('Last name is required.');
+      }
+
+      if (!this.person.birthday) {
+        this.errors.push('Birthday required.');
+      }
+
+      if (this.errors.length) {
+        return false;
+      }
+
+      return true;
     },
     fetchPerson: function fetchPerson(id, operation) {
       var _this4 = this;
@@ -2010,17 +2071,23 @@ __webpack_require__.r(__webpack_exports__);
       this.person.birthday = '';
       this.person.id = '';
     },
-    debounceSearchInput: _.debounce(function () {
-      this.fetchPeople();
-    }, 500),
     calculateAge: function calculateAge(date) {
       date = new Date(date);
       var diff_ms = Date.now() - date.getTime();
       var age_dt = new Date(diff_ms);
       var age = age_dt.getUTCFullYear() - 1970;
-      return Math.abs(age);
+
+      if (age <= 0) {
+        return 0;
+      } else {
+        return Math.abs(age);
+        s;
+      }
     },
     debounceFilterAge: _.debounce(function () {
+      this.fetchPeople();
+    }, 500),
+    debounceSearchInput: _.debounce(function () {
       this.fetchPeople();
     }, 500)
   },
@@ -2033,6 +2100,30 @@ __webpack_require__.r(__webpack_exports__);
     },
     filterAgeType: function filterAgeType() {
       this.debounceFilterAge();
+    },
+    filterAge: function filterAge() {
+      if (!this.filterAge) {
+        this.filterAgeType = 'equal';
+        this.filterAgeValue = '';
+      }
+    },
+    successOperation: function successOperation() {
+      var _this5 = this;
+
+      if (this.successOperation) {
+        setTimeout(function () {
+          _this5.successOperation = false;
+        }, 4000);
+      }
+    },
+    errors: function errors() {
+      var _this6 = this;
+
+      if (this.errors.length) {
+        setTimeout(function () {
+          _this6.errors = [];
+        }, 3000);
+      }
     }
   }
 });
@@ -54199,32 +54290,50 @@ var render = function() {
       "div",
       { staticClass: "container bg-light mt-4 mb-3 pb-4 pt-4 pl-5 pr-5" },
       [
-        _c(
-          "button",
-          {
-            staticClass: "btn btn-info float-right mb-3 ml-2",
-            on: {
-              click: function($event) {
-                _vm.filterAge = !_vm.filterAge
+        _c("div", { staticClass: "mb-5" }, [
+          _c(
+            "button",
+            {
+              staticClass: "btn btn-info float-right mb-3  ml-2",
+              attrs: { "data-toggle": "modal", "data-target": "#personModal" },
+              on: {
+                click: function($event) {
+                  _vm.showAddPersonModal()
+                }
               }
-            }
-          },
-          [_vm._v("\n            Filter\n        ")]
-        ),
+            },
+            [_vm._v("\n                Add Person\n            ")]
+          ),
+          _vm._v(" "),
+          _c(
+            "button",
+            {
+              staticClass: "btn btn-info float-right mb-3",
+              on: {
+                click: function($event) {
+                  _vm.filterAge = !_vm.filterAge
+                }
+              }
+            },
+            [_vm._v("\n                Filter Age\n            ")]
+          )
+        ]),
         _vm._v(" "),
-        _c(
-          "button",
-          {
-            staticClass: "btn btn-info float-right mb-3",
-            attrs: { "data-toggle": "modal", "data-target": "#personModal" },
-            on: {
-              click: function($event) {
-                _vm.showAddPersonModal()
-              }
-            }
-          },
-          [_vm._v("\n            Add Person\n        ")]
-        ),
+        _vm.successOperation
+          ? _c(
+              "div",
+              {
+                staticClass: "alert alert-success alert-dismissible",
+                attrs: { role: "alert" }
+              },
+              [
+                _vm._m(0),
+                _vm._v(
+                  "\n            SUCCESS : Operation has been successfully completed.\n        "
+                )
+              ]
+            )
+          : _vm._e(),
         _vm._v(" "),
         _c("div", { staticClass: "input-group mb-3" }, [
           _c("input", {
@@ -54335,6 +54444,12 @@ var render = function() {
             ])
           : _vm._e(),
         _vm._v(" "),
+        _vm.people.length == 0
+          ? _c("div", { staticClass: "card card-body mb-4 mt-4" }, [
+              _c("h3", [_vm._v("No Records.")])
+            ])
+          : _vm._e(),
+        _vm._v(" "),
         _vm._l(_vm.people, function(person) {
           return _c(
             "div",
@@ -54355,42 +54470,46 @@ var render = function() {
               _c("hr"),
               _vm._v(" "),
               _c("div", { staticClass: "row" }, [
-                _c("div", { staticClass: "col-sm-12 col-md-6" }, [
-                  _c(
-                    "button",
-                    {
-                      staticClass: "btn btn-block btn-success mb-2",
-                      attrs: {
-                        "data-toggle": "modal",
-                        "data-target": "#personModal"
-                      },
-                      on: {
-                        click: function($event) {
-                          _vm.fetchPerson(person.id, "edit")
-                        }
-                      }
-                    },
-                    [_vm._v("Edit")]
-                  )
-                ]),
-                _vm._v(" "),
-                _c("div", { staticClass: "col-sm-12 col-md-6" }, [
-                  _c(
-                    "button",
-                    {
-                      staticClass: "btn btn-block btn-danger",
-                      attrs: {
-                        "data-toggle": "modal",
-                        "data-target": "#personModal"
-                      },
-                      on: {
-                        click: function($event) {
-                          _vm.fetchPerson(person.id, "remove")
-                        }
-                      }
-                    },
-                    [_vm._v("Delete")]
-                  )
+                _c("div", { staticClass: "col-lg-4 offset-lg-8 col-md-8" }, [
+                  _c("div", { staticClass: "row" }, [
+                    _c("div", { staticClass: "col-md-6" }, [
+                      _c(
+                        "button",
+                        {
+                          staticClass: "btn btn-block btn-success",
+                          attrs: {
+                            "data-toggle": "modal",
+                            "data-target": "#personModal"
+                          },
+                          on: {
+                            click: function($event) {
+                              _vm.fetchPerson(person.id, "edit")
+                            }
+                          }
+                        },
+                        [_vm._v("Edit")]
+                      )
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "col-md-6" }, [
+                      _c(
+                        "button",
+                        {
+                          staticClass: "btn btn-block btn-danger",
+                          attrs: {
+                            "data-toggle": "modal",
+                            "data-target": "#personModal"
+                          },
+                          on: {
+                            click: function($event) {
+                              _vm.fetchPerson(person.id, "remove")
+                            }
+                          }
+                        },
+                        [_vm._v("Delete")]
+                      )
+                    ])
+                  ])
                 ])
               ])
             ]
@@ -54437,10 +54556,35 @@ var render = function() {
                       ]
                     ),
                     _vm._v(" "),
-                    _vm._m(0)
+                    _vm._m(1)
                   ]),
                   _vm._v(" "),
                   _c("div", { staticClass: "modal-body" }, [
+                    _vm.errors.length
+                      ? _c(
+                          "div",
+                          {
+                            staticClass:
+                              "alert alert-danger alert-dismissible small"
+                          },
+                          [
+                            _vm._m(2),
+                            _vm._v(" "),
+                            _c("b", [
+                              _vm._v("Please correct the following error(s):")
+                            ]),
+                            _vm._v(" "),
+                            _c(
+                              "ul",
+                              _vm._l(_vm.errors, function(error) {
+                                return _c("li", [_vm._v(_vm._s(error))])
+                              }),
+                              0
+                            )
+                          ]
+                        )
+                      : _vm._e(),
+                    _vm._v(" "),
                     _c("div", { staticClass: "form-group" }, [
                       _c("label", [_vm._v("First name")]),
                       _vm._v(" "),
@@ -54595,96 +54739,109 @@ var render = function() {
           ]
         ),
         _vm._v(" "),
-        _c("nav", { staticClass: "mt-2 mb-2 pl-0 container-fluid" }, [
-          _c("ul", { staticClass: "pagination" }, [
-            _c(
-              "li",
-              {
-                staticClass: "page-item",
-                on: {
-                  click: function($event) {
-                    _vm.fetchPeople(_vm.pagination.first_link)
-                  }
-                }
-              },
-              [
-                _c("a", { staticClass: "page-link", attrs: { href: "#" } }, [
-                  _vm._v("First")
-                ])
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "li",
-              {
-                staticClass: "page-item",
-                class: [{ disabled: !_vm.pagination.prev_link }],
-                on: {
-                  click: function($event) {
-                    _vm.pagination.prev_link &&
-                      _vm.fetchPeople(_vm.pagination.prev_link)
-                  }
-                }
-              },
-              [
-                _c("a", { staticClass: "page-link", attrs: { href: "#" } }, [
-                  _vm._v("Previous")
-                ])
-              ]
-            ),
-            _vm._v(" "),
-            _c("li", { staticClass: "page-item disabled" }, [
-              _c(
-                "a",
-                { staticClass: "page-link text-dark", attrs: { href: "#" } },
-                [
-                  _vm._v(
-                    "Page " +
-                      _vm._s(_vm.pagination.current_page) +
-                      " of " +
-                      _vm._s(_vm.pagination.last_page)
+        _vm.people.length != 0
+          ? _c("nav", { staticClass: "mt-2 mb-2 pl-0 container-fluid" }, [
+              _c("ul", { staticClass: "pagination" }, [
+                _c(
+                  "li",
+                  {
+                    staticClass: "page-item",
+                    on: {
+                      click: function($event) {
+                        _vm.fetchPeople(_vm.pagination.first_link)
+                      }
+                    }
+                  },
+                  [
+                    _c(
+                      "a",
+                      { staticClass: "page-link", attrs: { href: "#" } },
+                      [_vm._v("First")]
+                    )
+                  ]
+                ),
+                _vm._v(" "),
+                _c(
+                  "li",
+                  {
+                    staticClass: "page-item",
+                    class: [{ disabled: !_vm.pagination.prev_link }],
+                    on: {
+                      click: function($event) {
+                        _vm.pagination.prev_link &&
+                          _vm.fetchPeople(_vm.pagination.prev_link)
+                      }
+                    }
+                  },
+                  [
+                    _c(
+                      "a",
+                      { staticClass: "page-link", attrs: { href: "#" } },
+                      [_vm._v("Previous")]
+                    )
+                  ]
+                ),
+                _vm._v(" "),
+                _c("li", { staticClass: "page-item disabled" }, [
+                  _c(
+                    "a",
+                    {
+                      staticClass: "page-link text-dark",
+                      attrs: { href: "#" }
+                    },
+                    [
+                      _vm._v(
+                        "Page " +
+                          _vm._s(_vm.pagination.current_page) +
+                          " of " +
+                          _vm._s(_vm.pagination.last_page)
+                      )
+                    ]
                   )
-                ]
-              )
-            ]),
-            _vm._v(" "),
-            _c(
-              "li",
-              {
-                staticClass: "page-item",
-                class: [{ disabled: !_vm.pagination.next_link }],
-                on: {
-                  click: function($event) {
-                    _vm.pagination.next_link &&
-                      _vm.fetchPeople(_vm.pagination.next_link)
-                  }
-                }
-              },
-              [
-                _c("a", { staticClass: "page-link", attrs: { href: "#" } }, [
-                  _vm._v("Next")
-                ])
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "li",
-              {
-                staticClass: "page-item",
-                on: {
-                  click: function($event) {
-                    _vm.fetchPeople(_vm.pagination.last_link)
-                  }
-                }
-              },
-              [
-                _c("a", { staticClass: "page-link", attrs: { href: "#" } }, [
-                  _vm._v("Last")
-                ])
-              ]
-            )
-          ])
-        ])
+                ]),
+                _vm._v(" "),
+                _c(
+                  "li",
+                  {
+                    staticClass: "page-item",
+                    class: [{ disabled: !_vm.pagination.next_link }],
+                    on: {
+                      click: function($event) {
+                        _vm.pagination.next_link &&
+                          _vm.fetchPeople(_vm.pagination.next_link)
+                      }
+                    }
+                  },
+                  [
+                    _c(
+                      "a",
+                      { staticClass: "page-link", attrs: { href: "#" } },
+                      [_vm._v("Next")]
+                    )
+                  ]
+                ),
+                _vm._v(" "),
+                _c(
+                  "li",
+                  {
+                    staticClass: "page-item",
+                    on: {
+                      click: function($event) {
+                        _vm.fetchPeople(_vm.pagination.last_link)
+                      }
+                    }
+                  },
+                  [
+                    _c(
+                      "a",
+                      { staticClass: "page-link", attrs: { href: "#" } },
+                      [_vm._v("Last")]
+                    )
+                  ]
+                )
+              ])
+            ])
+          : _vm._e()
       ],
       2
     )
@@ -54699,11 +54856,37 @@ var staticRenderFns = [
       "button",
       {
         staticClass: "close",
+        attrs: { type: "button", "data-dismiss": "alert" }
+      },
+      [_c("span", { attrs: { "aria-hidden": "true" } }, [_vm._v("×")])]
+    )
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "button",
+      {
+        staticClass: "close",
         attrs: {
           type: "button",
           "data-dismiss": "modal",
           "aria-label": "Close"
         }
+      },
+      [_c("span", { attrs: { "aria-hidden": "true" } }, [_vm._v("×")])]
+    )
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "button",
+      {
+        staticClass: "close",
+        attrs: { type: "button", "data-dismiss": "alert" }
       },
       [_c("span", { attrs: { "aria-hidden": "true" } }, [_vm._v("×")])]
     )
