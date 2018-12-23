@@ -1,7 +1,7 @@
 <template>
     <nav class="navbar navbar-expand-sm navbar-dark bg-info mb-2">
         <div class="container">
-            <a href="#" class="navbar-brand">Users Information</a>
+            <a href="#" class="navbar-brand">LIST OF AMAZING PEOPLE</a>
         </div>
     </nav>
 </template>

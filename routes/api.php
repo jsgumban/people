@@ -25,7 +25,7 @@ Route::get('people', 'PeopleController@index');
 Route::get('people/{id}', 'PeopleController@show');
 
 // Update certain people
-Route::put('people/{id}', 'PeopleController@update');
+Route::put('people', 'PeopleController@update');
 
 // Create new people
 Route::post('people', 'PeopleController@store');

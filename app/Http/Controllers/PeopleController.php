@@ -14,13 +14,30 @@ class PeopleController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Get people
-        $people = People::paginate(10);
+        $q = $request->input('q');
+        $paginate = $request->input('paginate') != 0? $request->input('paginate') : 3;
+        
+//        $from = '2000-10-10';
+//        $to = '2018-12-25';
+//
+//        $people = People::whereBetween('birthday', [$from, $to]);
+//        $people = $people->paginate( $paginate );
+//        return PeopleResource::collection($people);
 
-        // Return collection of people as a resource
-        return PeopleResource::collection($people);
+        if ($q){
+            $people = People::where( 'first_name', 'LIKE', '%' . $q . '%' )->orWhere( 'last_name', 'LIKE', '%' . $q . '%' );
+            $people = $people->paginate( $paginate );
+            return PeopleResource::collection($people);
+        } else {
+            // Get people
+            $people = People::orderBy('created_at', 'desc');
+            $people = $people->paginate( $paginate );
+
+            // Return collection of people as a resource
+            return PeopleResource::collection($people);
+        }
     }
 
 
@@ -68,8 +85,9 @@ class PeopleController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
+        $id = $request->input('id');
         $people = People::findOrFail($id);
 
         $people->first_name = $request->input('first_name');
